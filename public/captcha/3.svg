@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
+  <rect width="120" height="40" fill="#f0fff4"/>
+  <line x1="0" y1="25" x2="120" y2="15" stroke="#ccc" stroke-width="1"/>
+  <line x1="0" y1="12" x2="120" y2="28" stroke="#ddd" stroke-width="1"/>
+  <text x="8" y="28" font-size="22" font-family="Arial" font-weight="bold" fill="#27ae60" transform="rotate(-7,8,28)">5</text>
+  <text x="30" y="30" font-size="20" font-family="Arial" font-weight="bold" fill="#8e44ad" transform="rotate(4,30,30)">R</text>
+  <text x="52" y="26" font-size="22" font-family="Arial" font-weight="bold" fill="#e74c3c" transform="rotate(-3,52,26)">n</text>
+  <text x="74" y="29" font-size="21" font-family="Arial" font-weight="bold" fill="#2980b9" transform="rotate(6,74,29)">Q</text>
+  <text x="96" y="27" font-size="20" font-family="Arial" font-weight="bold" fill="#e67e22" transform="rotate(-5,96,27)">8</text>
+</svg>

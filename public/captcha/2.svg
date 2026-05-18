@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="40" viewBox="0 0 120 40">
+  <rect width="120" height="40" fill="#fff8f0"/>
+  <line x1="0" y1="15" x2="120" y2="22" stroke="#ccc" stroke-width="1"/>
+  <line x1="0" y1="28" x2="120" y2="20" stroke="#ddd" stroke-width="1"/>
+  <text x="8" y="29" font-size="21" font-family="Arial" font-weight="bold" fill="#2980b9" transform="rotate(4,8,29)">A</text>
+  <text x="30" y="27" font-size="22" font-family="Arial" font-weight="bold" fill="#e74c3c" transform="rotate(-6,30,27)">9</text>
+  <text x="52" y="30" font-size="20" font-family="Arial" font-weight="bold" fill="#e67e22" transform="rotate(7,52,30)">P</text>
+  <text x="74" y="26" font-size="22" font-family="Arial" font-weight="bold" fill="#27ae60" transform="rotate(-4,74,26)">3</text>
+  <text x="96" y="28" font-size="21" font-family="Arial" font-weight="bold" fill="#8e44ad" transform="rotate(5,96,28)">w</text>
+</svg>
