@@ -12,6 +12,7 @@
 
         <div class="info">
           <h1 class="product-name">{{ product.name }}</h1>
+          <p v-if="product.description" class="product-desc">{{ product.description }}</p>
           <p class="product-price">¥{{ product.price }}</p>
 
           <div class="meta">
@@ -63,6 +64,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import { getProductRatings } from '@/api/review'
 
 const route = useRoute()
 const productId = route.params.id
@@ -76,9 +78,12 @@ const adding = ref(false)
 async function fetchProduct() {
   loading.value = true
   try {
-    const res = await request.get(`/product/${productId}`)
+    const [res, ratings] = await Promise.all([
+      request.get(`/product/${productId}`),
+      getProductRatings(productId),
+    ])
     product.value = res.product
-    reviews.value = res.reviews || []
+    reviews.value = ratings
   } catch {
     ElMessage.error('获取商品详情失败')
   } finally {
@@ -131,6 +136,14 @@ onMounted(fetchProduct)
 .product-name {
   margin: 0 0 12px;
   font-size: 22px;
+}
+
+.product-desc {
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 12px;
+  white-space: pre-wrap;
 }
 
 .product-price {

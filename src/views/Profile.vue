@@ -40,7 +40,7 @@
       <div class="right-col">
         <el-card class="wallet-card">
           <template #header>钱包</template>
-          <div class="stat-value">¥{{ wallet.balance }}</div>
+          <div class="stat-value">¥{{ Number(wallet.balance).toFixed(2) }}</div>
           <p class="stat-label">账户余额</p>
         </el-card>
 

@@ -91,7 +91,7 @@ const rejectReason = ref('')
 const reviewRef = ref()
 
 function openReview(row) {
-  reviewRef.value.open(row.id)
+  reviewRef.value.open(row.id, row.items?.[0]?.productId, row.buyerId)
 }
 
 function statusLabel(status) {

@@ -2,20 +2,21 @@
   <div v-loading="loading" class="checkout-page">
     <h2>确认订单</h2>
 
-    <el-card class="order-items">
-      <template #header>
-        <span>商品清单</span>
-      </template>
-
-      <div v-for="item in items" :key="item.id" class="order-item">
-        <img :src="item.image" :alt="item.name" class="item-img" />
-        <div class="item-info">
-          <p class="item-name">{{ item.name }}</p>
-          <p class="item-meta">¥{{ item.price }} × {{ item.quantity }}</p>
+    <div v-for="group in merchantGroups" :key="group.merchantId" class="merchant-section">
+      <el-card class="order-items">
+        <template #header>
+          <span>{{ group.merchantName }}</span>
+        </template>
+        <div v-for="item in group.items" :key="item.id" class="order-item">
+          <img :src="item.image" :alt="item.name" class="item-img" />
+          <div class="item-info">
+            <p class="item-name">{{ item.name }}</p>
+            <p class="item-meta">¥{{ item.price }} × {{ item.quantity }}</p>
+          </div>
+          <span class="item-subtotal">¥{{ (item.price * item.quantity).toFixed(2) }}</span>
         </div>
-        <span class="item-subtotal">¥{{ (item.price * item.quantity).toFixed(2) }}</span>
-      </div>
-    </el-card>
+      </el-card>
+    </div>
 
     <el-card class="settle-card">
       <div class="settle-row">
@@ -67,6 +68,15 @@ const usePoints = ref(false)
 const availablePoints = ref(0)
 
 const ids = computed(() => (route.query.ids || '').split(',').filter(Boolean))
+const merchantGroups = computed(() => {
+  const map = {}
+  items.value.forEach(item => {
+    const mid = item.merchantId
+    if (!map[mid]) map[mid] = { merchantId: mid, merchantName: item.merchantName, items: [] }
+    map[mid].items.push(item)
+  })
+  return Object.values(map)
+})
 
 const totalAmount = computed(() =>
   items.value.reduce((sum, i) => sum + i.price * i.quantity, 0).toFixed(2)
@@ -96,10 +106,15 @@ async function fetchCheckoutData() {
 async function submitOrder() {
   submitting.value = true
   try {
-    await request.post('/order/create', {
-      cartItemIds: ids.value,
-      usePoints: usePoints.value,
-    })
+    await Promise.all(
+      merchantGroups.value.map(group =>
+        request.post('/order/create', {
+          cartItemIds: group.items.map(i => i.id),
+          usePoints: usePoints.value,
+          pointsAmount: usePoints.value ? availablePoints.value : 0,
+        })
+      )
+    )
     ElMessage.success('下单成功')
     router.push('/orders')
   } catch (err) {
@@ -123,8 +138,12 @@ onMounted(fetchCheckoutData)
   margin: 0 0 20px;
 }
 
-.order-items {
+.merchant-section {
   margin-bottom: 16px;
+}
+
+.order-items {
+  margin-bottom: 0;
 }
 
 .order-item {

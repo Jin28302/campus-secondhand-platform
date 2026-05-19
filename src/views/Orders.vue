@@ -56,6 +56,7 @@
           >
             评价
           </el-button>
+          <el-tag v-if="order.status === 'completed' && order.reviewed" type="info" size="small">已评价</el-tag>
         </div>
       </div>
     </div>
@@ -79,16 +80,17 @@ const reviewRef = ref()
 const refundRef = ref()
 
 function openReview(order) {
-  reviewRef.value.open(order.id)
+  const productId = order.items?.[0]?.productId
+  reviewRef.value.open(order.id, productId, order.buyerId)
 }
 
 function statusLabel(status) {
-  const map = { pending: '待收货', completed: '已完成', refunded: '已退货' }
+  const map = { pending: '待收货', completed: '已完成', refunded: '已退货', refund_pending: '退货待审核', refund_rejected: '退货被拒' }
   return map[status] || status
 }
 
 function statusTagType(status) {
-  const map = { pending: 'warning', completed: 'success', refunded: 'info' }
+  const map = { pending: 'warning', completed: 'success', refunded: 'info', refund_pending: 'danger', refund_rejected: '' }
   return map[status] || ''
 }
 

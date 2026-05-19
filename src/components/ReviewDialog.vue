@@ -1,16 +1,22 @@
 <template>
-  <el-dialog v-model="visible" :title="title" width="460px" @close="handleClose">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
+  <el-dialog v-model="visible" title="订单评价" width="500px" @close="handleClose">
+    <el-divider content-position="left">商品评价</el-divider>
+    <el-form ref="productFormRef" :model="productForm" :rules="rules" label-width="80px">
       <el-form-item label="评分" prop="rating">
-        <el-rate v-model="form.rating" />
+        <el-rate v-model="productForm.rating" />
       </el-form-item>
       <el-form-item label="评价内容" prop="content">
-        <el-input
-          v-model="form.content"
-          type="textarea"
-          :rows="4"
-          placeholder="请输入评价内容"
-        />
+        <el-input v-model="productForm.content" type="textarea" :rows="3" placeholder="评价商品" />
+      </el-form-item>
+    </el-form>
+
+    <el-divider content-position="left">买家评价</el-divider>
+    <el-form ref="buyerFormRef" :model="buyerForm" :rules="rules" label-width="80px">
+      <el-form-item label="评分" prop="rating">
+        <el-rate v-model="buyerForm.rating" />
+      </el-form-item>
+      <el-form-item label="评价内容" prop="content">
+        <el-input v-model="buyerForm.content" type="textarea" :rows="3" placeholder="评价买家" />
       </el-form-item>
     </el-form>
 
@@ -22,53 +28,57 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import request from '@/utils/request'
-
-const props = defineProps({
-  type: { type: String, default: 'product' },
-})
+import { createProductRating, createBuyerRating } from '@/api/review'
 
 const emit = defineEmits(['success'])
 
 const visible = ref(false)
 const loading = ref(false)
-const formRef = ref()
-let targetId = ''
+const productFormRef = ref()
+const buyerFormRef = ref()
+let currentOrderId = ''
+let currentProductId = ''
+let currentBuyerId = ''
 
-const form = reactive({ rating: 5, content: '' })
+const productForm = reactive({ rating: 5, content: '' })
+const buyerForm = reactive({ rating: 5, content: '' })
 
 const rules = {
   rating: [{ required: true, message: '请选择评分', trigger: 'change' }],
   content: [{ required: true, message: '请输入评价内容', trigger: 'blur' }],
 }
 
-const title = computed(() => (props.type === 'product' ? '商品评价' : '买家评价'))
-
-function open(id) {
-  targetId = id
-  form.rating = 5
-  form.content = ''
+function open(orderId, productId, buyerId) {
+  currentOrderId = orderId
+  currentProductId = productId
+  currentBuyerId = buyerId
+  productForm.rating = 5
+  productForm.content = ''
+  buyerForm.rating = 5
+  buyerForm.content = ''
   visible.value = true
 }
 
 function handleClose() {
-  formRef.value?.resetFields()
+  productFormRef.value?.resetFields()
+  buyerFormRef.value?.resetFields()
 }
 
 async function handleSubmit() {
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
+  const [v1, v2] = await Promise.all([
+    productFormRef.value.validate().catch(() => false),
+    buyerFormRef.value.validate().catch(() => false),
+  ])
+  if (!v1 || !v2) return
 
   loading.value = true
   try {
-    const url = props.type === 'product' ? '/review/product' : '/review/merchant'
-    const payload =
-      props.type === 'product'
-        ? { orderId: targetId, rating: form.rating, content: form.content }
-        : { buyerOrderId: targetId, rating: form.rating, content: form.content }
-    await request.post(url, payload)
+    await Promise.all([
+      createProductRating({ orderId: currentOrderId, productId: currentProductId, rating: productForm.rating, content: productForm.content }),
+      createBuyerRating({ orderId: currentOrderId, buyerId: currentBuyerId, rating: buyerForm.rating, content: buyerForm.content }),
+    ])
     ElMessage.success('评价成功')
     visible.value = false
     emit('success')
