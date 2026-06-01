@@ -1,6 +1,11 @@
+<!--
+  主页（首页）- 应用入口页面
+  主要功能：顶部搜索栏、分类快捷入口、推荐商品（已上架前8条）展示
+  涉及接口：GET /api/product/search?pageNum=1&pageSize=8（推荐商品列表）
+-->
 <template>
   <div class="home-page">
-    <!-- 搜索栏 -->
+    <!-- 搜索栏：输入关键词，回车或点击搜索按钮跳转到商品列表页 -->
     <div class="search-bar">
       <el-input
         v-model="keyword"
@@ -15,7 +20,7 @@
       </el-input>
     </div>
 
-    <!-- 分类按钮 -->
+    <!-- 分类入口：6个商品分类按钮，点击跳转到对应分类的商品列表 -->
     <div class="categories">
       <el-button
         v-for="cat in categories"
@@ -28,8 +33,8 @@
       </el-button>
     </div>
 
-    <!-- 推荐商品 -->
-    <div class="section-title">推荐商品</div>
+    <!-- 推荐商品区域：展示已上架商品的前8条 -->
+    <div class="section-title">已上架商品</div>
     <div v-loading="loading" class="product-grid">
       <el-card
         v-for="item in products"
@@ -41,32 +46,54 @@
         <img :src="item.image" :alt="item.name" class="product-img" />
         <div class="product-info">
           <p class="product-name">{{ item.name }}</p>
-          <p class="product-price">¥{{ item.price }}</p>
+          <p class="product-meta">
+            <el-tag size="small" type="info">{{ item.condition }}</el-tag>
+            <span class="sales">已售 {{ item.sales || 0 }}</span>
+          </p>
+          <p class="product-price">¥{{ Number(item.price).toFixed(2) }}</p>
         </div>
       </el-card>
     </div>
 
+    <!-- 空状态提示：无已上架商品时显示 -->
     <div v-if="!loading && products.length === 0" class="empty">
-      <el-empty description="暂无推荐商品" />
+      <el-empty description="暂无已上架商品" />
     </div>
   </div>
 </template>
 
 <script setup>
+/**
+ * 主页 - 应用入口页面
+ * 展示搜索栏、分类快捷入口和推荐商品列表
+ * 搜索和分类点击均跳转到商品列表页并携带查询参数
+ */
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Reading, Monitor, ShoppingBag, Bicycle, EditPen, MoreFilled } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 
+/** Vue Router 实例 */
 const router = useRouter()
+/** 页面加载动画 */
 const loading = ref(false)
+/** 推荐商品列表 */
 const products = ref([])
+/** 搜索关键词 */
 const keyword = ref('')
 
+/**
+ * 搜索跳转
+ * 携带 keyword 查询参数跳转到商品列表页
+ */
 function goSearch() {
   router.push({ path: '/products', query: { keyword: keyword.value } })
 }
 
+/**
+ * 商品分类定义
+ * label: 分类显示名称，value: 分类值（传后端），icon: 分类图标
+ */
 const categories = [
   { label: '书籍教材', value: '书籍教材', icon: Reading },
   { label: '电子产品', value: '电子产品', icon: Monitor },
@@ -76,15 +103,24 @@ const categories = [
   { label: '其他', value: '其他', icon: MoreFilled },
 ]
 
+/**
+ * 分类点击跳转
+ * 携带 category 查询参数跳转到商品列表页
+ * @param {string} category - 分类名称
+ */
 function goCategory(category) {
   router.push({ path: '/products', query: { category } })
 }
 
+/**
+ * 获取推荐商品列表
+ * 请求已上架商品的前 8 条作为首页推荐展示
+ */
 async function fetchRecommended() {
   loading.value = true
   try {
-    const res = await request.get('/products', { params: { page: 1, pageSize: 8 } })
-    products.value = res.list || []
+    const res = await request.get('/product/search', { params: { pageNum: 1, pageSize: 8 } })
+    products.value = res.records || []
   } catch {
     products.value = []
   } finally {
@@ -92,6 +128,7 @@ async function fetchRecommended() {
   }
 }
 
+/** 页面挂载时获取推荐商品 */
 onMounted(fetchRecommended)
 </script>
 
@@ -151,11 +188,23 @@ onMounted(fetchRecommended)
 }
 
 .product-name {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   font-size: 14px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.product-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+
+.product-meta .sales {
+  font-size: 12px;
+  color: #909399;
 }
 
 .product-price {

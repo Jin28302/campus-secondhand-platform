@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+// 订单服务实现 - 处理订单创建、确认收货、预览和查询
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements OrderService {
@@ -47,6 +48,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private final PointsLogService pointsLogService;
     private final OrderItemService orderItemService;
 
+    // 创建订单 - 从事务性：校验库存、计算金额、积分抵扣、余额扣款、扣减库存、清除购物车
     @Override
     @Transactional(rollbackFor = Exception.class)
     public List<Order> createOrders(OrderCreateDTO dto) {
@@ -58,14 +60,14 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             throw new BusinessException("购物车商品不存在");
         }
 
-        // 校验购物车归属
+        // 校验购物车归属，防止操作他人购物车
         for (Cart cart : cartItems) {
             if (!cart.getUserId().equals(userId)) {
                 throw new BusinessException("购物车数据异常");
             }
         }
 
-        // 计算总金额
+        // 遍历购物车计算每个商品的小计金额
         BigDecimal totalPay = BigDecimal.ZERO;
         List<Order> orders = new ArrayList<>();
         List<OrderItem> orderItems = new ArrayList<>();
@@ -80,6 +82,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 throw new BusinessException("商品[" + product.getName() + "]库存不足");
             }
 
+            // 计算该商品金额 = 折扣价 * 数量
             BigDecimal amount = product.getDiscountPrice()
                     .multiply(BigDecimal.valueOf(cart.getQuantity()));
             totalPay = totalPay.add(amount);
@@ -95,6 +98,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             order.setPayTime(LocalDateTime.now());
             orders.add(order);
 
+            // 取商品第一张图片作为快照
             String firstImage = product.getImages() != null && !product.getImages().isBlank()
                     ? product.getImages().split(",")[0] : null;
             OrderItem item = new OrderItem();
@@ -107,25 +111,43 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             orderItems.add(item);
         }
 
-        // 钱包扣款
-        if (user.getWallet().compareTo(totalPay) < 0) {
+        // 积分抵扣 - 根据积分规则计算可抵扣金额
+        BigDecimal pointsDeduction = BigDecimal.ZERO;
+        if (dto.isUsePoints() && user.getPoints() != null && user.getPoints() > 0) {
+            pointsDeduction = PointsDeductUtil.calcDeduction(user.getPoints(), totalPay);
+        }
+        BigDecimal actualTotal = totalPay.subtract(pointsDeduction);
+
+        // 钱包扣款 - 使用乐观锁（余额 >= 实付金额）确保不超扣
+        if (user.getWallet().compareTo(actualTotal) < 0) {
             throw new BusinessException("钱包余额不足");
         }
 
         boolean walletUpdated = userService.update(new LambdaUpdateWrapper<User>()
                 .eq(User::getId, userId)
-                .ge(User::getWallet, totalPay)
-                .set(User::getWallet, user.getWallet().subtract(totalPay)));
+                .ge(User::getWallet, actualTotal)  // 乐观锁：当前余额 >= 待扣金额
+                .set(User::getWallet, user.getWallet().subtract(actualTotal)));
 
         if (!walletUpdated) {
             throw new BusinessException("扣款失败，余额不足");
         }
 
-        // 乐观锁扣减库存
+        // 扣减积分 - 使用乐观锁确保积分足够
+        if (pointsDeduction.compareTo(BigDecimal.ZERO) > 0) {
+            int usedPoints = PointsDeductUtil.deductedPoints(pointsDeduction);
+            userService.update(new LambdaUpdateWrapper<User>()
+                    .eq(User::getId, userId)
+                    .ge(User::getPoints, usedPoints)  // 乐观锁：当前积分 >= 待扣积分
+                    .setSql("points = points - " + usedPoints));
+            // 记录积分消耗日志
+            pointsLogService.record(userId, -usedPoints, "积分抵扣");
+        }
+
+        // 乐观锁扣减库存 - 使用库存 >= 购买数量作为条件
         for (Cart cart : cartItems) {
             boolean stockUpdated = productService.update(new LambdaUpdateWrapper<Product>()
                     .eq(Product::getId, cart.getProductId())
-                    .ge(Product::getStock, cart.getQuantity())
+                    .ge(Product::getStock, cart.getQuantity())  // 乐观锁：库存 >= 购买数量
                     .setSql("stock = stock - " + cart.getQuantity())
                     .setSql("sales_count = sales_count + " + cart.getQuantity()));
 
@@ -134,7 +156,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             }
         }
 
-        // 批量保存订单
+        // 批量保存订单，保存后订单获得ID
         saveBatch(orders);
 
         // 关联 orderId 到明细并批量保存
@@ -143,19 +165,35 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
         orderItemService.saveBatch(orderItems);
 
-        // 计算积分：消费1元=1积分
+        // 积分奖励：消费1元获得1积分
         int earnedPoints = totalPay.intValue();
         userService.update(new LambdaUpdateWrapper<User>()
                 .eq(User::getId, userId)
                 .setSql("points = points + " + earnedPoints));
         pointsLogService.record(userId, earnedPoints, "下单获得积分");
 
-        // 清除已下单的购物车
+        // 清除已下单的购物车记录
         cartService.removeByIds(dto.getCartIds());
 
         return orders;
     }
 
+    // 商家发货 - 将订单状态从待发货(pending)变为待收货(shipped)
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void shipOrder(Long orderId) {
+        Long sellerId = UserContext.get().userId();
+        Order order = getById(orderId);
+
+        if (order == null) throw new BusinessException("订单不存在");
+        if (!order.getSellerId().equals(sellerId)) throw new BusinessException("无权操作此订单");
+        if (!OrderStatus.PENDING.getValue().equals(order.getStatus())) throw new BusinessException("当前状态不允许发货");
+
+        order.setStatus(OrderStatus.SHIPPED.getValue());
+        updateById(order);
+    }
+
+    // 确认收货 - 买家确认后订单完成，按商家等级扣除平台费后打款给卖家
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void confirmReceive(Long orderId) {
@@ -168,17 +206,31 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         if (!order.getUserId().equals(userId)) {
             throw new BusinessException("无权操作此订单");
         }
-        if (!OrderStatus.PENDING.getValue().equals(order.getStatus())) {
+        // 只有"待收货(shipped)"状态才能确认收货
+        if (!OrderStatus.SHIPPED.getValue().equals(order.getStatus())) {
             throw new BusinessException("订单状态不允许确认收货");
         }
 
         LocalDateTime now = LocalDateTime.now();
         order.setStatus(OrderStatus.COMPLETED.getValue());
         order.setConfirmTime(now);
+        // 退货截止时间为确认收货后24小时
         order.setReturnDeadline(now.plusHours(24));
         updateById(order);
+
+        // 货款打入卖家钱包，扣除平台费（平台费比例与卖家等级相关）
+        User seller = userService.getById(order.getSellerId());
+        int sellerLevel = seller.getSellerLevel() != null ? seller.getSellerLevel() : 1;
+        // 根据卖家等级计算平台手续费
+        BigDecimal platformFee = PointsDeductUtil.getPlatformFee(order.getActualPay(), sellerLevel);
+        // 卖家实际收入 = 买家实付 - 平台费
+        BigDecimal sellerIncome = order.getActualPay().subtract(platformFee);
+        userService.update(new LambdaUpdateWrapper<User>()
+                .eq(User::getId, order.getSellerId())
+                .setSql("wallet = wallet + " + sellerIncome));
     }
 
+    // 生成订单号 - 格式：ORD + 年月日时分秒 + 4位随机数
     private String generateOrderNo() {
         String timestamp = LocalDateTime.now()
                 .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
@@ -186,6 +238,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         return "ORD" + timestamp + random;
     }
 
+    // 订单预览 - 下单前计算总价、积分抵扣、实付金额，不实际创建订单
     @Override
     public OrderPreviewVO preview(OrderCreateDTO dto) {
         Long userId = UserContext.get().userId();
@@ -196,6 +249,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             throw new BusinessException("购物车商品不存在");
         }
 
+        // 计算选中商品的合计金额
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (Cart cart : cartItems) {
             Product product = productService.getById(cart.getProductId());
@@ -206,10 +260,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                     product.getDiscountPrice().multiply(BigDecimal.valueOf(cart.getQuantity())));
         }
 
+        // 计算积分可抵扣金额
         BigDecimal deduction = PointsDeductUtil.calcDeduction(
                 user.getPoints() != null ? user.getPoints() : 0, totalAmount);
 
         OrderPreviewVO vo = new OrderPreviewVO();
+        // 仅返回选中的购物车分组数据
         vo.setGroups(cartService.myCartGrouped().stream()
                 .filter(g -> g.getItems().stream()
                         .anyMatch(i -> dto.getCartIds().contains(i.getCartId())))
@@ -217,10 +273,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         vo.setTotalAmount(totalAmount);
         vo.setAvailablePoints(user.getPoints() != null ? user.getPoints() : 0);
         vo.setPointsDeduction(deduction);
+        // 实付金额 = 合计金额 - 积分抵扣
         vo.setActualPay(totalAmount.subtract(deduction));
         return vo;
     }
 
+    // 我的订单 - 买家分页查看自己的订单，支持按状态筛选
     @Override
     public IPage<Order> myOrders(OrderQueryDTO dto) {
         Long userId = UserContext.get().userId();
@@ -233,6 +291,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         return page(new Page<>(dto.getPageNum(), dto.getPageSize()), wrapper);
     }
 
+    // 商家订单 - 商家分页查看与自己商品相关的订单
     @Override
     public IPage<Order> sellerOrders(OrderQueryDTO dto) {
         Long sellerId = UserContext.get().userId();

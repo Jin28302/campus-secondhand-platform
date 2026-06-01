@@ -19,6 +19,8 @@ public interface AdminService {
 
     void approveProduct(Long productId);
 
+    void rejectProduct(Long productId);
+
     IPage<User> userList(UserSearchDTO dto);
 
     void updateUser(Long userId, UserUpdateDTO dto);

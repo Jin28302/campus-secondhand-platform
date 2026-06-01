@@ -13,6 +13,8 @@ public interface OrderService extends IService<Order> {
 
     List<Order> createOrders(OrderCreateDTO dto);
 
+    void shipOrder(Long orderId);
+
     void confirmReceive(Long orderId);
 
     OrderPreviewVO preview(OrderCreateDTO dto);
