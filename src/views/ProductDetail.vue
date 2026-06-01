@@ -20,7 +20,7 @@
         <div class="info">
           <h1 class="product-name">{{ product.name }}</h1>
           <p v-if="product.description" class="product-desc">{{ product.description }}</p>
-          <p class="product-price">¥{{ Number(product.price).toFixed(2) }}</p>
+          <p class="product-price">￥{{ Number(product.price).toFixed(2) }}</p>
 
           <!-- 库存和新旧程度标签 -->
           <div class="meta">
@@ -40,10 +40,17 @@
 
           <!-- 操作区：数量选择 + 加入购物车按钮 -->
           <div class="actions">
-            <el-input-number v-model="quantity" :min="1" :max="product.stock" />
-            <el-button type="primary" :loading="adding" @click="addToCart">
-              加入购物车
-            </el-button>
+            <!-- 售罄时显示标签并禁用按钮 -->
+            <template v-if="product.stock === 0">
+              <el-tag type="danger" size="large">已售罄</el-tag>
+              <el-button type="primary" disabled>加入购物车</el-button>
+            </template>
+            <template v-else>
+              <el-input-number v-model="quantity" :min="1" :max="product.stock" />
+              <el-button type="primary" :loading="adding" @click="addToCart">
+                加入购物车
+              </el-button>
+            </template>
           </div>
         </div>
       </div>

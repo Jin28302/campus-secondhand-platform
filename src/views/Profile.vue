@@ -51,7 +51,7 @@
         <!-- 钱包卡片：余额展示 + 充值按钮 -->
         <el-card class="wallet-card">
           <template #header>钱包</template>
-          <div class="stat-value">¥{{ Number(wallet.balance).toFixed(2) }}</div>
+          <div class="stat-value">￥{{ Number(wallet.balance).toFixed(2) }}</div>
           <p class="stat-label">账户余额</p>
           <el-button type="primary" size="small" style="margin-top:12px" @click="rechargeVisible = true">充值</el-button>
         </el-card>
@@ -176,7 +176,7 @@ async function handleRecharge() {
   recharging.value = true
   try {
     await request.post('/wallet/recharge', { amount: rechargeAmount.value })
-    ElMessage.success(`成功充值 ¥${rechargeAmount.value.toFixed(2)}`)
+    ElMessage.success(`成功充值 ￥${rechargeAmount.value.toFixed(2)}`)
     rechargeVisible.value = false
     // 充值后刷新数据
     fetchData()

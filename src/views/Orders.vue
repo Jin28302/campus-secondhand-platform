@@ -36,13 +36,13 @@
         <img :src="item.image" :alt="item.name" class="item-img" />
         <div class="item-info">
           <p class="item-name">{{ item.name }}</p>
-          <p class="item-meta">¥{{ Number(item.price).toFixed(2) }} × {{ item.quantity }}</p>
+          <p class="item-meta">￥{{ Number(item.price).toFixed(2) }} × {{ item.quantity }}</p>
         </div>
       </div>
 
       <!-- 订单底部：合计金额 + 操作按钮（根据状态动态显示） -->
       <div class="order-footer">
-        <span class="order-total">合计：¥{{ order.totalAmount }}</span>
+        <span class="order-total">合计：￥{{ order.totalAmount }}</span>
         <div class="order-actions">
           <!-- 待收货：确认收货按钮 -->
           <el-button

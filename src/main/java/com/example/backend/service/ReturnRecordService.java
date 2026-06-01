@@ -10,4 +10,6 @@ public interface ReturnRecordService extends IService<ReturnRecord> {
     void applyReturn(Long orderId, ReturnApplyDTO dto);
 
     void audit(Long returnId, ReturnAuditDTO dto);
+
+    void auditByOrderId(Long orderId, ReturnAuditDTO dto);
 }

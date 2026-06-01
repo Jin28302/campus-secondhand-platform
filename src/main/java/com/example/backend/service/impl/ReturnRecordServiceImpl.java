@@ -147,4 +147,15 @@ public class ReturnRecordServiceImpl extends ServiceImpl<ReturnRecordMapper, Ret
             throw new BusinessException("审核结果只能为 同意 或 拒绝");
         }
     }
+
+    // 按订单ID审核退货 - 先根据orderId查询退货记录，再调用audit逻辑
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void auditByOrderId(Long orderId, ReturnAuditDTO dto) {
+        ReturnRecord record = getOne(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ReturnRecord>()
+                .eq(ReturnRecord::getOrderId, orderId)
+                .eq(ReturnRecord::getStatus, "待审核"));
+        if (record == null) throw new BusinessException("该订单没有待审核的退货记录");
+        audit(record.getId(), dto);
+    }
 }

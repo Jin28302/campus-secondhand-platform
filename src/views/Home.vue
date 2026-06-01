@@ -50,7 +50,7 @@
             <el-tag size="small" type="info">{{ item.condition }}</el-tag>
             <span class="sales">已售 {{ item.sales || 0 }}</span>
           </p>
-          <p class="product-price">¥{{ Number(item.price).toFixed(2) }}</p>
+          <p class="product-price">{{ Number(item.price).toFixed(2) }}元</p>
         </div>
       </el-card>
     </div>

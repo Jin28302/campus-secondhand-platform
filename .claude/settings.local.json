@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(curl *)",
+      "Bash(cmd //c \"taskkill /F /IM node.exe\")",
+      "Bash(npm run *)",
+      "Read(//d/upload/**)",
+      "Bash(\"D:\\\\mysql\\\\mysql-8.0.46-winx64\\\\bin\\\\mysql\" -u root -p20041027jjy! campus_secondhand -e \"SELECT id, name, images, status FROM product;\")",
+      "Bash(D:\\\\mysql\\\\mysql-8.0.46-winx64\\\\bin\\\\mysql *)",
+      "Bash(cmd //c \"taskkill /F /IM java.exe\")",
+      "Bash(mvn spring-boot:run)"
+    ]
+  }
+}

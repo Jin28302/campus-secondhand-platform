@@ -18,9 +18,9 @@
           <img :src="item.image" :alt="item.name" class="item-img" />
           <div class="item-info">
             <p class="item-name">{{ item.name }}</p>
-            <p class="item-meta">¥{{ Number(item.price).toFixed(2) }} × {{ item.quantity }}</p>
+            <p class="item-meta">￥{{ Number(item.price).toFixed(2) }} × {{ item.quantity }}</p>
           </div>
-          <span class="item-subtotal">¥{{ (item.price * item.quantity).toFixed(2) }}</span>
+          <span class="item-subtotal">￥{{ (item.price * item.quantity).toFixed(2) }}</span>
         </div>
       </el-card>
     </div>
@@ -30,7 +30,7 @@
       <!-- 商品总额 -->
       <div class="settle-row">
         <span>商品总额</span>
-        <span class="amount">¥{{ totalAmount }}</span>
+        <span class="amount">￥{{ totalAmount }}</span>
       </div>
 
       <!-- 积分抵扣开关 -->
@@ -39,13 +39,13 @@
           <span>积分抵扣</span>
           <el-switch v-model="usePoints" :disabled="availablePoints <= 0" />
         </div>
-        <span v-if="usePoints" class="discount">-¥{{ pointsDiscount }}</span>
-        <span v-else class="discount">-¥0.00</span>
+        <span v-if="usePoints" class="discount">-￥{{ pointsDiscount }}</span>
+        <span v-else class="discount">-￥0.00</span>
       </div>
 
       <!-- 积分提示信息 -->
       <div class="points-hint">
-        可用积分：{{ availablePoints }}（可抵扣 ¥{{ pointsDiscount }}）
+        可用积分：{{ availablePoints }}（可抵扣 ￥{{ pointsDiscount }}）
       </div>
 
       <el-divider />
@@ -53,14 +53,14 @@
       <!-- 应付金额：商品总额 - 积分抵扣 -->
       <div class="settle-row total-row">
         <span>应付金额</span>
-        <span class="final-amount">¥{{ finalAmount }}</span>
+        <span class="final-amount">￥{{ finalAmount }}</span>
       </div>
 
       <!-- 钱包余额提示 -->
       <div class="settle-row wallet-row">
         <span>钱包余额</span>
         <span :class="walletBalance < parseFloat(finalAmount) ? 'insufficient' : 'sufficient'">
-          ¥{{ walletBalance.toFixed(2) }}
+          ￥{{ walletBalance.toFixed(2) }}
         </span>
       </div>
       <div v-if="walletBalance < parseFloat(finalAmount)" class="balance-warning">

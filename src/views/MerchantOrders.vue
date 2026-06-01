@@ -19,7 +19,7 @@
         </template>
       </el-table-column>
       <el-table-column prop="totalAmount" label="金额" width="100">
-        <template #default="{ row }">¥{{ row.totalAmount }}</template>
+        <template #default="{ row }">￥{{ row.totalAmount }}</template>
       </el-table-column>
       <el-table-column prop="status" label="状态" width="120">
         <template #default="{ row }">
@@ -216,7 +216,7 @@ async function submitAudit() {
 
   auditing.value = true
   try {
-    await request.put(`/return/${currentOrder.value.id}/audit`, {
+    await request.put(`/return/order/${currentOrder.value.id}/audit`, {
       result: auditResult.value === 'approved' ? '同意' : '拒绝',
       rejectReason: auditResult.value === 'rejected' ? rejectReason.value : undefined,
     })

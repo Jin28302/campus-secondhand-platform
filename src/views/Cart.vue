@@ -38,7 +38,7 @@
           <img :src="item.image" :alt="item.name" class="item-img" />
           <div class="item-info">
             <p class="item-name">{{ item.name }}</p>
-            <p class="item-price">¥{{ Number(item.price).toFixed(2) }}</p>
+            <p class="item-price">￥{{ Number(item.price).toFixed(2) }}</p>
           </div>
           <!-- 库存为0时显示售罄标签，否则显示数量修改器 -->
           <el-tag v-if="item.stock === 0" type="danger" size="small">已售罄</el-tag>
@@ -49,7 +49,7 @@
             :max="item.stock"
             @change="(val, prev) => handleQuantityChange(item, val, prev)"
           />
-          <span class="item-subtotal">¥{{ (item.price * item.quantity).toFixed(2) }}</span>
+          <span class="item-subtotal">￥{{ (item.price * item.quantity).toFixed(2) }}</span>
           <el-button type="danger" link @click="handleRemove(item)">删除</el-button>
         </div>
       </div>
@@ -58,7 +58,7 @@
       <div class="cart-footer">
         <div class="total">
           已选 <span class="count">{{ selectedCount }}</span> 件，合计：
-          <span class="amount">¥{{ totalAmount }}</span>
+          <span class="amount">￥{{ totalAmount }}</span>
         </div>
         <el-button type="primary" size="large" :disabled="selectedCount === 0" @click="checkout">
           结算

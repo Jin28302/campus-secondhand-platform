@@ -18,7 +18,7 @@
       <el-table-column prop="name" label="商品名称" min-width="150" />
       <el-table-column prop="category" label="类别" width="100" />
       <el-table-column prop="price" label="价格" width="90">
-        <template #default="{ row }">¥{{ Number(row.price).toFixed(2) }}</template>
+        <template #default="{ row }">￥{{ Number(row.price).toFixed(2) }}</template>
       </el-table-column>
       <el-table-column prop="stock" label="库存" width="70" />
       <el-table-column prop="condition" label="新旧程度" width="100" />
